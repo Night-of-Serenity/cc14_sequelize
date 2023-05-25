@@ -5,12 +5,10 @@ module.exports = (sequelize, DataTypes) => {
       name: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
         validate: {
           isAlpha: true,
           len: [2, 15],
-        },
-        get() {
-          return this.getDataValue("name").toUpperCase();
         },
       },
       password: {

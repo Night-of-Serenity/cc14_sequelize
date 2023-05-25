@@ -1,14 +1,16 @@
 const { sequelize, Todo, User } = require("./models");
+const bcrypt = require("bcryptjs");
 
+const hashed = bcrypt.hashSync("1234");
 sequelize
   .sync({ force: true })
   .then(() => {
     return User.bulkCreate([
-      { name: "Andy", password: "1234" },
-      { name: "Bobby", password: "1234" },
-      { name: "Candy", password: "1234" },
-      { name: "Danny", password: "1234" },
-      { name: "Eddy", password: "1234" },
+      { name: "Andy", password: hashed },
+      { name: "Bobby", password: hashed },
+      { name: "Candy", password: hashed },
+      { name: "Danny", password: hashed },
+      { name: "Eddy", password: hashed },
     ]);
   })
   .then(() => {

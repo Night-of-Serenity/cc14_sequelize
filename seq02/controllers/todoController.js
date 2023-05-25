@@ -2,7 +2,11 @@ const { Todo, User, sequelize } = require("../models");
 const { Op } = require("sequelize");
 
 exports.getAllTodos = (req, res, next) => {
-  Todo.findAll()
+  // console.log(req.user);
+
+  Todo.findAll({
+    where: { user_id: req.user.id },
+  })
     .then((rs) => {
       res.json(rs);
     })
@@ -84,41 +88,76 @@ exports.getTodoByUser = (req, res, next) => {
     .catch(next);
 };
 
-exports.sumTodos = (req, res, next) => {
-  Todo.findAll({
-    attributes: [[sequelize.fn("COUNT", sequelize.col("user_id")), "task"]],
-    include: {
-      model: User,
-      attributes: ["name"],
-    },
-    group: "user_id",
-  })
-    .then((rs) => {
-      let result = JSON.parse(JSON.stringify(rs)).map((item) => {
-        return {
-          name: item.User.name,
-          task: item.task,
-        };
-      });
-      console.log(result);
-      res.json(result);
-    })
-    .catch(next);
-};
+// exports.sumTodos = (req, res, next) => {
+//   Todo.findAll({
+//     attributes: [[sequelize.fn("COUNT", sequelize.col("user_id")), "task"]],
+//     include: {
+//       model: User,
+//       attributes: ["name"],
+//     },
+//     group: "user_id",
+//   })
+//     .then((rs) => {
+//       let result = JSON.parse(JSON.stringify(rs)).map((item) => {
+//         return {
+//           name: item.User.name,
+//           task: item.task,
+//         };
+//       });
+//       console.log(result);
+//       res.json(result);
+//     })
+//     .catch(next);
+// };
 
 // exports.sumTodos = (req, res, next) => {
 //   User.findAll({
-//     attributes: ["name", [sequelize.fn("COUNT", sequelize.col("name")), "task"]],
+//     attributes: ["name"],
 //     include: {
 //       model: Todo,
-//       where: {
-//         id: {
-//           [Op.ne]: null,
-//         },
-//       },
+//       attributes: [[sequelize.fn("COUNT", sequelize.col("title")), "task"]],
+//       // where: {
+//       //   id: {
+//       //     [Op.ne]: null,
+//       //   },
+//       // },
 //       group: "user_id",
 //     },
 //   })
 //     .then((rs) => res.json(rs))
 //     .catch(next);
 // };
+
+exports.sumTodos = (req, res, next) => {
+  User.findAll({
+    attributes: ["name"],
+    include: {
+      model: Todo,
+      attributes: [[sequelize.fn("count", sequelize.col("user_id")), "tasks"]],
+    },
+    group: "name",
+  })
+    .then((rs) => {
+      res.json(rs);
+    })
+    .catch(next);
+};
+
+exports.doubleDelete = async (req, res, next) => {
+  const { id1, id2 } = req.params;
+  console.log(id1, id2);
+  let t = await sequelize.transaction();
+
+  try {
+    let rs1 = await Todo.destroy({ where: { id: id1 }, transaction: t });
+    if (rs1 === 0) throw new Error("Cannot delete");
+    let rs2 = await Todo.destroy({ where: { id: id2 }, transaction: t });
+    if (rs2 === 0) throw new Error("Cannot delete");
+    await t.commit();
+
+    res.json({ msg: `delete id: ${id1}, ${id2}` });
+  } catch (err) {
+    await t.rollback();
+    next(err);
+  }
+};
